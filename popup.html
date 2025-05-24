@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JobSieve Settings</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo">
+        <h1>🔍 JobSieve</h1>
+        <p>LinkedIn Job Filter</p>
+      </div>
+      <div class="header-actions">
+        <div class="health-status" id="healthStatus">
+          <span class="status-indicator" id="statusIndicator"></span>
+          <span id="statusText">Loading...</span>
+        </div>
+        <button type="button" id="resetSettings" class="btn-reset-header">Reset All</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- Company Blacklist -->
+      <section class="filter-section">
+        <div class="filter-header">
+          <label class="switch">
+            <input type="checkbox" id="companyBlacklistEnabled">
+            <span class="slider"></span>
+          </label>
+          <h3>Company Blacklist</h3>
+        </div>
+        <p class="description">Hide jobs from specific companies</p>
+        <div class="input-group">
+          <input type="text" id="companyInput" placeholder="Enter company name">
+          <button type="button" id="addCompany" class="btn-add">Add</button>
+        </div>
+        <div class="tags" id="companyTags"></div>
+      </section>
+
+      <!-- Location Exclusion -->
+      <section class="filter-section">
+        <div class="filter-header">
+          <label class="switch">
+            <input type="checkbox" id="locationBlacklistEnabled">
+            <span class="slider"></span>
+          </label>
+          <h3>Location Exclusion</h3>
+        </div>
+        <p class="description">Hide jobs from specific locations</p>
+        <div class="input-group">
+          <input type="text" id="locationInput" placeholder="Enter city, region, or country">
+          <button type="button" id="addLocation" class="btn-add">Add</button>
+        </div>
+        <div class="tags" id="locationTags"></div>
+      </section>
+
+      <!-- Keyword Blacklist -->
+      <section class="filter-section">
+        <div class="filter-header">
+          <label class="switch">
+            <input type="checkbox" id="keywordBlacklistEnabled">
+            <span class="slider"></span>
+          </label>
+          <h3>Keyword Blacklist</h3>
+        </div>
+        <p class="description">Hide jobs containing unwanted terms</p>
+        <div class="input-group">
+          <input type="text" id="keywordBlacklistInput" placeholder="e.g. Senior, Contract, Remote">
+          <button type="button" id="addKeywordBlacklist" class="btn-add">Add</button>
+        </div>
+        <div class="tags" id="keywordBlacklistTags"></div>
+      </section>
+
+      <!-- Keyword Whitelist -->
+      <section class="filter-section">
+        <div class="filter-header">
+          <label class="switch">
+            <input type="checkbox" id="keywordWhitelistEnabled">
+            <span class="slider"></span>
+          </label>
+          <h3>Keyword Whitelist</h3>
+        </div>
+        <p class="description">Highlight jobs with required skills or perks</p>
+        <div class="input-group">
+          <input type="text" id="keywordWhitelistInput" placeholder="e.g. React, Python, Remote">
+          <button type="button" id="addKeywordWhitelist" class="btn-add">Add</button>
+        </div>
+        <div class="tags" id="keywordWhitelistTags"></div>
+      </section>
+
+    </main>
+
+    <script src="popup.js"></script>
+  </div>
+</body>
+</html> 

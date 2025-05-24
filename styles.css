@@ -1,0 +1,72 @@
+/* JobSieve Content Styles - Injected into LinkedIn */
+
+/* Hidden job cards */
+.jobsieve-hidden {
+  display: none !important;
+}
+
+/* Highlighted job cards */
+.jobsieve-highlighted {
+  position: relative;
+  outline: 2px solid #21838f !important;
+  background-color: rgba(76, 175, 80, 0.25) !important;
+  border-radius: 8px !important;
+  animation: jobsieve-highlight 0.3s ease;
+}
+
+.jobsieve-highlighted::before {
+  content: "✨ Highlighted by JobSieve";
+  position: absolute;
+  top: -8px;
+  left: 12px;
+  background: #21838f;
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 12px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Highlight animation */
+@keyframes jobsieve-highlight {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(33, 131, 143, 0.7);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 10px rgba(33, 131, 143, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(33, 131, 143, 0);
+  }
+}
+
+/* Ensure proper z-index for highlighted cards */
+.jobsieve-highlighted {
+  z-index: 1 !important;
+}
+
+/* Optional: Fade out animation for hidden cards */
+.jobsieve-fade-out {
+  opacity: 0 !important;
+  transform: scale(0.95) !important;
+  transition: opacity 0.3s ease, transform 0.3s ease !important;
+}
+
+/* Status indicator for debugging (only visible in development) */
+.jobsieve-debug {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  z-index: 9999;
+  pointer-events: none;
+} 
