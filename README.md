@@ -17,7 +17,7 @@ A powerful browser extension that helps you filter and customize your LinkedIn j
 ### 🔤 **Keyword Blocklist**
 - Exclude postings containing unwanted terms
 - Filter out roles like "Senior", "Contract", "Remote", etc.
-- Smart text matching across job titles and descriptions
+- Smart text matching across job titles and keywords
 
 ### ⭐ **Keyword Whitelist**
 - Highlight jobs that include required skills or perks

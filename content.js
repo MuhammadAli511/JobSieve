@@ -59,15 +59,6 @@ class JobSieveFilter {
                     'h3[aria-label]',
                     '.artdeco-entity-lockup__title'
                 ]
-            },
-            description: {
-                primary: '.job-card-container__job-insight',
-                fallbacks: [
-                    '.job-card-container__job-criteria',
-                    '.job-card-search__job-insight',
-                    '.job-card-container__footer',
-                    '.artdeco-entity-lockup__metadata'
-                ]
             }
         };
     }
@@ -174,7 +165,7 @@ class JobSieveFilter {
             };
         }
 
-        const selectorTypes = ['company', 'location', 'title', 'description'];
+        const selectorTypes = ['company', 'location', 'title'];
         const workingSelectors = [];
         const brokenSelectors = [];
 
@@ -329,15 +320,13 @@ class JobSieveFilter {
     }
 
     getCardText(card) {
-        // Get all text content from title, company, and description
+        // Get all text content from title and company
         const titleElement = this.findElement(card, 'title');
         const companyElement = this.findElement(card, 'company');
-        const descriptionElement = this.findElement(card, 'description');
 
         let text = '';
         if (titleElement) text += titleElement.textContent + ' ';
         if (companyElement) text += companyElement.textContent + ' ';
-        if (descriptionElement) text += descriptionElement.textContent + ' ';
 
         return text.trim();
     }
