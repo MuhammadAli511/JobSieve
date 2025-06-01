@@ -28,7 +28,7 @@ class JobSieveFilter {
                 ]
             },
             company: {
-                primary: '.aartdeco-entity-lockup__subtitle .LFUkJATCjtUDMAIItJefilLEzXXTDvlvyvDDc',
+                primary: '.artdeco-entity-lockup__subtitle span[dir="ltr"]',
                 fallbacks: [
                     '.artdeco-entity-lockup__subtitle span',
                     '.artdeco-entity-lockup__subtitle',
@@ -39,14 +39,15 @@ class JobSieveFilter {
                 ]
             },
             location: {
-                primary: '.artdeco-entity-lockup__caption .BssLzPLeahgrzlSIUWAgqYJrVUWZanEMaDo',
+                primary: '.job-card-container__metadata-wrapper li span[dir="ltr"]',
                 fallbacks: [
+                    '.artdeco-entity-lockup__caption li span[dir="ltr"]',
                     '.artdeco-entity-lockup__caption li span',
                     '.job-card-container__metadata-wrapper li',
+                    '.artdeco-entity-lockup__caption li',
                     '.job-card-container__location',
                     '.job-card-search__location',
-                    '[aria-label*="location" i]',
-                    '.artdeco-entity-lockup__subtitle'
+                    '[aria-label*="location" i]'
                 ]
             },
             title: {

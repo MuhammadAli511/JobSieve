@@ -341,7 +341,18 @@ class PopupManager {
             if (response.success) {
                 await this.loadSettings();
                 this.showNotification('Settings reset successfully', 'success');
-                this.notifyContentScript();
+
+                // Reload the current tab if it's on LinkedIn jobs search
+                try {
+                    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                    if (tab && tab.url && tab.url.includes('linkedin.com/jobs/search')) {
+                        await chrome.tabs.reload(tab.id);
+                    }
+                } catch (reloadError) {
+                    console.log('Could not reload tab:', reloadError);
+                    // Still notify content script as fallback
+                    this.notifyContentScript();
+                }
             } else {
                 throw new Error(response.error || 'Failed to reset settings');
             }
@@ -453,6 +464,10 @@ class PopupManager {
                 <strong>⚠️ No Job Cards Detected</strong><br>
                 Extension cannot find job listings on this page. 
                 Try refreshing or navigate to a LinkedIn jobs search page.
+                <br><br>
+                <button id="reloadPageBtn" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 8px;">
+                    🔄 Reload Page
+                </button>
             `;
         } else {
             const brokenList = brokenSelectors.filter(s => s !== 'jobCards' && s !== 'page').join(', ');
@@ -460,7 +475,28 @@ class PopupManager {
                 <strong>⚠️ Selector Issues Detected</strong><br>
                 Broken: <code style="background: rgba(255,255,255,0.2); padding: 2px 4px; border-radius: 3px;">${brokenList}</code><br>
                 <small>Some filters may not work correctly. LinkedIn may have updated their page structure.</small>
+                <br><br>
+                <button id="reloadPageBtn" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 8px;">
+                    🔄 Reload Page to Fix
+                </button>
             `;
+        }
+
+        // Add reload button functionality
+        const reloadBtn = warningBanner.querySelector('#reloadPageBtn');
+        if (reloadBtn) {
+            reloadBtn.addEventListener('click', async () => {
+                try {
+                    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                    if (tab && tab.url && tab.url.includes('linkedin.com')) {
+                        await chrome.tabs.reload(tab.id);
+                        this.showNotification('Page reloading...', 'info');
+                    }
+                } catch (error) {
+                    console.error('Failed to reload page:', error);
+                    this.showNotification('Failed to reload page', 'error');
+                }
+            });
         }
     }
 
