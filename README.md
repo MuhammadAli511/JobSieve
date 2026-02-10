@@ -48,7 +48,7 @@ A powerful browser extension that helps you filter and customize your LinkedIn j
 
 1. **Clone or Download**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/MuhammadAli511/JobSieve.git
    cd JobSieve
    ```
 
@@ -64,8 +64,8 @@ A powerful browser extension that helps you filter and customize your LinkedIn j
    - Click "Load Temporary Add-on"
    - Select the `manifest.json` file
 
-### Production Installation
-*Coming soon to browser extension stores*
+### Chrome Web Store
+Install directly from the [Chrome Web Store](https://chromewebstore.google.com/detail/jobsieve-linkedin-job-fil/anoideekpmpbjcmlkpmhlhbbnnkklfkm).
 
 ## 🎯 Usage
 
@@ -160,10 +160,11 @@ Each filter can be individually enabled/disabled:
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our contributing guidelines for:
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
 - Bug reports
 - Feature requests  
 - Code contributions
+- Selector updates
 - Documentation improvements
 
 ## 📄 License
@@ -172,8 +173,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🆘 Support
 
-- **Issues**: Report bugs via GitHub Issues
-- **Feature Requests**: Use GitHub Discussions
+- **Issues**: [Report bugs via GitHub Issues](https://github.com/MuhammadAli511/JobSieve/issues)
+- **Feature Requests**: [Use GitHub Issues](https://github.com/MuhammadAli511/JobSieve/issues/new?template=feature_request.md)
 - **Documentation**: Check this README and inline comments
 
 ---
