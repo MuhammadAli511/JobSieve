@@ -34,7 +34,9 @@ class JobSieveBackground {
                 companyBlacklist: true,
                 locationBlacklist: true,
                 keywordBlacklist: true,
-                keywordWhitelist: true
+                keywordWhitelist: true,
+                hidePromoted: false,
+                hideViewed: false
             },
             healthStatus: {
                 selectorsWorking: true
@@ -44,10 +46,15 @@ class JobSieveBackground {
         try {
             const stored = await chrome.storage.sync.get(Object.keys(defaultSettings));
             const settings = { ...defaultSettings, ...stored };
+            // Ensure new filter keys exist in stored settings
+            if (settings.filtersEnabled) {
+                settings.filtersEnabled = { ...defaultSettings.filtersEnabled, ...settings.filtersEnabled };
+            }
             await chrome.storage.sync.set(settings);
         } catch (error) {
             console.error('JobSieve: Failed to initialize storage:', error);
         }
+
     }
 
     async handleMessage(message, sender, sendResponse) {
@@ -101,6 +108,7 @@ class JobSieveBackground {
             console.error('JobSieve: Failed to update health status:', error);
         }
     }
+
 }
 
 // Initialize background service

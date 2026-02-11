@@ -12,12 +12,14 @@ const selectorConfig = {
             '.job-card-container',
             '.jobs-search-results__list-item',
             '.job-card-list',
-            '.ember-view[data-occludable-job-id]'
+            '.ember-view[data-occludable-job-id]',
+            '.scaffold-layout__list-item'
         ]
     },
     company: {
-        primary: '.artdeco-entity-lockup__subtitle .LFUkJATCjtUDMAIItJefilLEzXXTDvlvyvDDc',
+        primary: '.artdeco-entity-lockup__subtitle .AEuhFmZyMboxPGoVPjFnHnVGyLtrNdAjWVppI',
         fallbacks: [
+            '.artdeco-entity-lockup__subtitle span[dir="ltr"]',
             '.artdeco-entity-lockup__subtitle span',
             '.artdeco-entity-lockup__subtitle',
             '.job-card-container__company-name',
@@ -27,8 +29,10 @@ const selectorConfig = {
         ]
     },
     location: {
-        primary: '.artdeco-entity-lockup__caption .BssLzPLeahgrzlSIUWAgqYJrVUWZanEMaDo',
+        primary: '.artdeco-entity-lockup__caption .DJmjhrULCEeVHdRIuxazWNSsFOOdWKIsE',
         fallbacks: [
+            '.job-card-container__metadata-wrapper li span[dir="ltr"]',
+            '.artdeco-entity-lockup__caption li span[dir="ltr"]',
             '.artdeco-entity-lockup__caption li span',
             '.job-card-container__metadata-wrapper li',
             '.job-card-container__location',
@@ -44,8 +48,18 @@ const selectorConfig = {
             '.job-card-container__link',
             '.job-card-container__title',
             '.job-card-search__title',
+            'a[aria-label]',
             'h3[aria-label]',
             '.artdeco-entity-lockup__title'
+        ]
+    },
+    promoted: {
+        primary: '.job-card-container__footer-item--promoted',
+        fallbacks: [
+            '.job-card-container__footer-item',
+            '.job-card-list__footer-wrapper .job-card-container__footer-job-state',
+            '.artdeco-entity-lockup__badge',
+            '.job-card-container__footer-wrapper'
         ]
     }
 };
@@ -113,7 +127,30 @@ if (cards.length === 0) {
     // Summary
     console.log(`\n📊 Summary:`);
     console.log(`Total job cards found: ${cards.length}`);
+
+    // Test promoted detection
+    let promotedCount = 0;
+    let viewedCount = 0;
+    cards.forEach(card => {
+        // Check promoted
+        const promotedResult = findElement(card, 'promoted');
+        if (promotedResult && /promoted/i.test(promotedResult.element.textContent)) {
+            promotedCount++;
+        } else {
+            const footerEls = card.querySelectorAll('.job-card-container__footer-wrapper, .job-card-list__footer-wrapper');
+            for (const el of footerEls) {
+                if (/\bpromoted\b/i.test(el.textContent)) { promotedCount++; break; }
+            }
+        }
+        // Check viewed
+        const titleLink = findElement(card, 'title');
+        if (titleLink && titleLink.element) {
+            if (titleLink.element.classList.contains('job-card-list__title--is-visited')) viewedCount++;
+        }
+    });
+    console.log(`Promoted jobs detected: ${promotedCount}`);
+    console.log(`Viewed jobs detected: ${viewedCount}`);
 }
 
 console.log('\n✅ JobSieve Selector Test Complete!');
-console.log('Copy and paste this script into the browser console on any LinkedIn jobs page to test.'); 
+console.log('Copy and paste this script into the browser console on any LinkedIn jobs page (search, collections, or view) to test.'); 

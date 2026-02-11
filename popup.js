@@ -1,11 +1,36 @@
 // JobSieve Popup Script
+
+// Helper to check if a URL is a JobSieve-supported LinkedIn page
+function isJobSievePage(url) {
+    if (!url) return false;
+    return url.includes('linkedin.com/jobs/');
+}
+
 class PopupManager {
     constructor() {
         this.settings = {};
         this.elements = {};
+        this.tagCounts = {}; // Per-tag filter counts
+        this.statsInterval = null;
+        this.loadTheme();
         this.initializeElements();
         this.setupEventListeners();
         this.loadSettings();
+    }
+
+    loadTheme() {
+        // Apply saved theme immediately to prevent flash
+        chrome.storage.local.get('theme', (result) => {
+            const theme = result.theme || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        });
+    }
+
+    toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        chrome.storage.local.set({ theme: next });
     }
 
     initializeElements() {
@@ -14,6 +39,8 @@ class PopupManager {
         this.elements.locationBlacklistEnabled = document.getElementById('locationBlacklistEnabled');
         this.elements.keywordBlacklistEnabled = document.getElementById('keywordBlacklistEnabled');
         this.elements.keywordWhitelistEnabled = document.getElementById('keywordWhitelistEnabled');
+        this.elements.hidePromotedEnabled = document.getElementById('hidePromotedEnabled');
+        this.elements.hideViewedEnabled = document.getElementById('hideViewedEnabled');
 
         // Input fields
         this.elements.companyInput = document.getElementById('companyInput');
@@ -34,9 +61,24 @@ class PopupManager {
         this.elements.keywordBlacklistTags = document.getElementById('keywordBlacklistTags');
         this.elements.keywordWhitelistTags = document.getElementById('keywordWhitelistTags');
 
+        // Theme toggle
+        this.elements.themeToggle = document.getElementById('themeToggle');
+
         // Status elements
         this.elements.statusIndicator = document.getElementById('statusIndicator');
         this.elements.statusText = document.getElementById('statusText');
+
+        // Stats elements
+        this.elements.statsFiltered = document.getElementById('statsFiltered');
+        this.elements.statsHighlighted = document.getElementById('statsHighlighted');
+        this.elements.statsTotalProcessed = document.getElementById('statsTotalProcessed');
+        this.elements.statsToggleDetails = document.getElementById('statsToggleDetails');
+        this.elements.statsDetails = document.getElementById('statsDetails');
+        this.elements.statsByCompany = document.getElementById('statsByCompany');
+        this.elements.statsByLocation = document.getElementById('statsByLocation');
+        this.elements.statsByKeyword = document.getElementById('statsByKeyword');
+        this.elements.statsByPromoted = document.getElementById('statsByPromoted');
+        this.elements.statsByViewed = document.getElementById('statsByViewed');
     }
 
     setupEventListeners() {
@@ -59,6 +101,23 @@ class PopupManager {
         this.elements.keywordWhitelistEnabled.addEventListener('change', () => {
             this.toggleSection('keywordWhitelist', this.elements.keywordWhitelistEnabled.checked);
             this.saveSettings(false);
+        });
+
+        // Promoted/Viewed toggles - simple on/off, no section body to toggle
+        this.elements.hidePromotedEnabled.addEventListener('change', () => {
+            this.saveSettings(false);
+        });
+
+        this.elements.hideViewedEnabled.addEventListener('change', () => {
+            this.saveSettings(false);
+        });
+
+        // Stats details toggle
+        this.elements.statsToggleDetails.addEventListener('click', () => {
+            const details = this.elements.statsDetails;
+            const isHidden = details.style.display === 'none';
+            details.style.display = isHidden ? 'block' : 'none';
+            this.elements.statsToggleDetails.classList.toggle('expanded', isHidden);
         });
 
         // Add buttons
@@ -99,6 +158,11 @@ class PopupManager {
             if (e.key === 'Enter') this.elements.addKeywordWhitelist.click();
         });
 
+        // Theme toggle
+        this.elements.themeToggle.addEventListener('click', () => {
+            this.toggleTheme();
+        });
+
         // Action buttons
         this.elements.resetSettings.addEventListener('click', () => {
             this.resetSettings();
@@ -114,6 +178,12 @@ class PopupManager {
 
                 // Load real-time health status after UI is populated
                 await this.loadRealTimeHealthStatus();
+
+                // Load filter stats
+                await this.loadFilterStats();
+
+                // Start periodic stats refresh while popup is open
+                this.startStatsPolling();
             } else {
                 console.error('Failed to load settings:', response.error);
                 this.showNotification('Failed to load settings', 'error');
@@ -122,6 +192,12 @@ class PopupManager {
             console.error('Error loading settings:', error);
             this.showNotification('Extension communication error', 'error');
         }
+    }
+
+    startStatsPolling() {
+        // Refresh stats every 3 seconds while popup is open
+        if (this.statsInterval) clearInterval(this.statsInterval);
+        this.statsInterval = setInterval(() => this.loadFilterStats(), 3000);
     }
 
     async loadRealTimeHealthStatus() {
@@ -133,7 +209,7 @@ class PopupManager {
                 return;
             }
 
-            if (tab.url.includes('linkedin.com/jobs/search')) {
+            if (isJobSievePage(tab.url)) {
                 try {
                     // Request current health status from content script
                     const healthResponse = await chrome.tabs.sendMessage(tab.id, {
@@ -185,6 +261,8 @@ class PopupManager {
         this.elements.locationBlacklistEnabled.checked = this.settings.filtersEnabled?.locationBlacklist || false;
         this.elements.keywordBlacklistEnabled.checked = this.settings.filtersEnabled?.keywordBlacklist || false;
         this.elements.keywordWhitelistEnabled.checked = this.settings.filtersEnabled?.keywordWhitelist || false;
+        this.elements.hidePromotedEnabled.checked = this.settings.filtersEnabled?.hidePromoted || false;
+        this.elements.hideViewedEnabled.checked = this.settings.filtersEnabled?.hideViewed || false;
 
         // Populate tags
         this.renderTags('companyBlacklist', this.settings.companyBlacklist || []);
@@ -267,7 +345,7 @@ class PopupManager {
         }
     }
 
-    renderTags(listType, items) {
+    renderTags(listType, items, counts = null) {
         const containerMap = {
             companyBlacklist: this.elements.companyTags,
             locationBlacklist: this.elements.locationTags,
@@ -283,8 +361,11 @@ class PopupManager {
         items.forEach(item => {
             const tag = document.createElement('div');
             tag.className = 'tag';
+            const count = counts && counts[item] ? counts[item] : 0;
+            const countBadge = count > 0 ? `<span class="tag-count">${count}</span>` : '';
             tag.innerHTML = `
         <span>${this.escapeHtml(item)}</span>
+        ${countBadge}
         <button type="button" class="tag-remove" title="Remove">×</button>
       `;
 
@@ -305,7 +386,9 @@ class PopupManager {
                     companyBlacklist: this.elements.companyBlacklistEnabled.checked,
                     locationBlacklist: this.elements.locationBlacklistEnabled.checked,
                     keywordBlacklist: this.elements.keywordBlacklistEnabled.checked,
-                    keywordWhitelist: this.elements.keywordWhitelistEnabled.checked
+                    keywordWhitelist: this.elements.keywordWhitelistEnabled.checked,
+                    hidePromoted: this.elements.hidePromotedEnabled.checked,
+                    hideViewed: this.elements.hideViewedEnabled.checked
                 }
             };
 
@@ -345,7 +428,7 @@ class PopupManager {
                 // Reload the current tab if it's on LinkedIn jobs search
                 try {
                     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                    if (tab && tab.url && tab.url.includes('linkedin.com/jobs/search')) {
+                    if (tab && tab.url && isJobSievePage(tab.url)) {
                         await chrome.tabs.reload(tab.id);
                     }
                 } catch (reloadError) {
@@ -371,7 +454,7 @@ class PopupManager {
                 return;
             }
 
-            if (tab.url.includes('linkedin.com/jobs/search')) {
+            if (isJobSievePage(tab.url)) {
                 try {
                     // Check if content script is loaded by sending a ping first
                     await chrome.tabs.sendMessage(tab.id, { type: 'PING' });
@@ -382,8 +465,8 @@ class PopupManager {
                     this.showNotification('Settings saved, refresh page!', 'info');
                 }
             } else if (tab.url.includes('linkedin.com')) {
-                // User is on LinkedIn but wrong page
-                this.showNotification('JobSieve only works on LinkedIn Jobs Search pages', 'warning');
+                // User is on LinkedIn but not on a jobs page
+                this.showNotification('Navigate to LinkedIn Jobs to use filters', 'warning');
             }
         } catch (error) {
             // Silently handle tab query errors
@@ -511,11 +594,11 @@ class PopupManager {
         try {
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
             if (tab && tab.url) {
-                if (!tab.url.includes('linkedin.com/jobs/search')) {
+                if (!isJobSievePage(tab.url)) {
                     if (tab.url.includes('linkedin.com')) {
-                        this.showPageWarning('JobSieve only works on LinkedIn Jobs Search pages. Navigate to linkedin.com/jobs/search to use filters.');
+                        this.showPageWarning('Navigate to LinkedIn Jobs pages (search, collections) to use JobSieve filters.');
                     } else {
-                        this.showPageWarning('JobSieve only works on LinkedIn Jobs Search pages.');
+                        this.showPageWarning('JobSieve works on LinkedIn Jobs pages.');
                     }
                 }
             }
@@ -596,6 +679,67 @@ class PopupManager {
     showReloadPrompt() {
         this.showNotification('Filter removed, refresh page!', 'info', 4000);
     }
+
+    // --- Stats Methods ---
+
+    async loadFilterStats() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+            // Load session stats from content script
+            if (tab && tab.url && isJobSievePage(tab.url)) {
+                try {
+                    const response = await chrome.tabs.sendMessage(tab.id, {
+                        type: 'GET_FILTER_STATS'
+                    });
+
+                    if (response && response.success) {
+                        this.updateSessionStats(response.sessionStats, response.filterCounts);
+                    }
+                } catch (e) {
+                    // Content script not ready - that's OK
+                }
+            }
+
+
+        } catch (error) {
+            // Silently handle
+        }
+    }
+
+    updateSessionStats(sessionStats, filterCounts) {
+        if (!sessionStats) return;
+
+        // Update main stats bar
+        if (this.elements.statsFiltered) {
+            this.elements.statsFiltered.textContent = sessionStats.filtered || 0;
+        }
+        if (this.elements.statsHighlighted) {
+            this.elements.statsHighlighted.textContent = sessionStats.highlighted || 0;
+        }
+        if (this.elements.statsTotalProcessed) {
+            this.elements.statsTotalProcessed.textContent = sessionStats.totalProcessed || 0;
+        }
+
+        // Update per-filter breakdown
+        const byFilter = sessionStats.byFilter || {};
+        if (this.elements.statsByCompany) this.elements.statsByCompany.textContent = byFilter.companyBlacklist || 0;
+        if (this.elements.statsByLocation) this.elements.statsByLocation.textContent = byFilter.locationBlacklist || 0;
+        if (this.elements.statsByKeyword) this.elements.statsByKeyword.textContent = byFilter.keywordBlacklist || 0;
+        if (this.elements.statsByPromoted) this.elements.statsByPromoted.textContent = byFilter.promoted || 0;
+        if (this.elements.statsByViewed) this.elements.statsByViewed.textContent = byFilter.viewed || 0;
+
+        // Update tag badges with per-tag counts
+        if (filterCounts) {
+            this.tagCounts = filterCounts;
+            // Re-render tags with counts (only for blacklist types, not whitelist)
+            this.renderTags('companyBlacklist', this.settings.companyBlacklist || [], filterCounts.companyBlacklist);
+            this.renderTags('locationBlacklist', this.settings.locationBlacklist || [], filterCounts.locationBlacklist);
+            this.renderTags('keywordBlacklist', this.settings.keywordBlacklist || [], filterCounts.keywordBlacklist);
+        }
+    }
+
+
 }
 
 // Initialize popup when DOM is ready

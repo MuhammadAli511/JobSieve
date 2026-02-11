@@ -10,6 +10,26 @@ class JobSieveFilter {
             selectorsWorking: true,
             lastUpdate: Date.now()
         };
+        // Stats tracking
+        this.sessionStats = {
+            filtered: 0,
+            highlighted: 0,
+            totalProcessed: 0,
+            byFilter: {
+                companyBlacklist: 0,
+                locationBlacklist: 0,
+                keywordBlacklist: 0,
+                promoted: 0,
+                viewed: 0
+            }
+        };
+        this.filterCounts = {
+            companyBlacklist: {},
+            locationBlacklist: {},
+            keywordBlacklist: {}
+        };
+        // Detect page type
+        this.pageType = this.detectPageType();
 
         this.init();
     }
@@ -24,7 +44,8 @@ class JobSieveFilter {
                     '.job-card-container',
                     '.jobs-search-results__list-item',
                     '.job-card-list',
-                    '.ember-view[data-occludable-job-id]'
+                    '.ember-view[data-occludable-job-id]',
+                    '.scaffold-layout__list-item'
                 ]
             },
             company: {
@@ -57,11 +78,30 @@ class JobSieveFilter {
                     '.job-card-container__link',
                     '.job-card-container__title',
                     '.job-card-search__title',
+                    'a[aria-label]',
                     'h3[aria-label]',
                     '.artdeco-entity-lockup__title'
                 ]
+            },
+            promoted: {
+                primary: '.job-card-container__footer-item--promoted',
+                fallbacks: [
+                    '.job-card-container__footer-item',
+                    '.job-card-list__footer-wrapper .job-card-container__footer-job-state',
+                    '.artdeco-entity-lockup__badge',
+                    '.job-card-container__footer-wrapper'
+                ]
             }
         };
+    }
+
+    // Detect the type of LinkedIn page we're on
+    detectPageType() {
+        const url = window.location.href;
+        if (url.includes('/jobs/search')) return 'search';
+        if (url.includes('/jobs/collections')) return 'collections';
+        if (url.includes('/jobs/view')) return 'view';
+        return 'unknown';
     }
 
     async init() {
@@ -91,10 +131,10 @@ class JobSieveFilter {
         }
     }
 
-    // Validate that we're on the correct LinkedIn page
+    // Validate that we're on a supported LinkedIn page
     isValidLinkedInJobsPage() {
         const url = window.location.href;
-        return url.includes('linkedin.com/jobs/search');
+        return url.includes('linkedin.com/jobs/');
     }
 
     async loadSettings() {
@@ -116,7 +156,9 @@ class JobSieveFilter {
                     companyBlacklist: false,
                     locationBlacklist: false,
                     keywordBlacklist: false,
-                    keywordWhitelist: false
+                    keywordWhitelist: false,
+                    hidePromoted: false,
+                    hideViewed: false
                 },
                 companyBlacklist: [],
                 locationBlacklist: [],
@@ -235,11 +277,27 @@ class JobSieveFilter {
         let filtered = 0;
         let highlighted = 0;
 
+        // Reset per-run filter counts
+        this.filterCounts = {
+            companyBlacklist: {},
+            locationBlacklist: {},
+            keywordBlacklist: {}
+        };
+        const byFilter = {
+            companyBlacklist: 0,
+            locationBlacklist: 0,
+            keywordBlacklist: 0,
+            promoted: 0,
+            viewed: 0
+        };
+
         // Process each job card
         for (const card of jobCards) {
-            if (this.shouldHideCard(card)) {
-                this.hideCard(card); // This now removes the li element completely
+            const hideReason = this.getHideReason(card);
+            if (hideReason) {
+                this.hideCard(card);
                 filtered++;
+                byFilter[hideReason]++;
             } else if (this.shouldHighlightCard(card)) {
                 this.highlightCard(card);
                 highlighted++;
@@ -248,10 +306,22 @@ class JobSieveFilter {
             }
         }
 
+        // Update session stats
+        this.sessionStats.filtered = filtered;
+        this.sessionStats.highlighted = highlighted;
+        this.sessionStats.totalProcessed = jobCards.length;
+        this.sessionStats.byFilter = byFilter;
+
+        // Include stats in health check
+        this.healthCheck.filtered = filtered;
+        this.healthCheck.highlighted = highlighted;
+        this.healthCheck.filterCounts = this.filterCounts;
+        this.healthCheck.byFilter = byFilter;
+
         // Report health status
         await this.reportHealth();
 
-        console.log(`JobSieve: Processed ${jobCards.length} jobs, removed ${filtered}, highlighted ${highlighted}`);
+        console.log(`JobSieve: Processed ${jobCards.length} jobs, hidden ${filtered}, highlighted ${highlighted}`);
     }
 
     getJobCards() {
@@ -272,14 +342,67 @@ class JobSieveFilter {
     }
 
     shouldHideCard(card) {
-        return this.isCompanyBlacklisted(card) ||
-            this.isLocationBlacklisted(card) ||
-            this.hasBlacklistedKeywords(card);
+        return !!this.getHideReason(card);
+    }
+
+    // Returns the reason string for hiding, or null if card should not be hidden
+    getHideReason(card) {
+        if (this.isPromoted(card)) return 'promoted';
+        if (this.isViewed(card)) return 'viewed';
+        if (this.isCompanyBlacklisted(card)) return 'companyBlacklist';
+        if (this.isLocationBlacklisted(card)) return 'locationBlacklist';
+        if (this.hasBlacklistedKeywords(card)) return 'keywordBlacklist';
+        return null;
     }
 
     shouldHighlightCard(card) {
         return this.settings.filtersEnabled.keywordWhitelist &&
             this.hasWhitelistedKeywords(card);
+    }
+
+    isPromoted(card) {
+        if (!this.settings.filtersEnabled?.hidePromoted) return false;
+
+        // Check for promoted label in footer/metadata area
+        const promotedEl = this.findElement(card, 'promoted');
+        if (promotedEl && /promoted/i.test(promotedEl.textContent)) {
+            return true;
+        }
+
+        // Fallback: scan footer area for "Promoted" text (avoid title matches)
+        const footerEls = card.querySelectorAll(
+            '.job-card-container__footer-wrapper, .job-card-list__footer-wrapper, .artdeco-entity-lockup__badge'
+        );
+        for (const el of footerEls) {
+            if (/\bpromoted\b/i.test(el.textContent)) return true;
+        }
+
+        return false;
+    }
+
+    isViewed(card) {
+        if (!this.settings.filtersEnabled?.hideViewed) return false;
+
+        // Check for "Viewed" text in the footer/status area
+        const footerItems = card.querySelectorAll(
+            '.job-card-container__footer-job-state, .job-card-container__footer-item'
+        );
+        for (const el of footerItems) {
+            if (/\bviewed\b/i.test(el.textContent.trim())) return true;
+        }
+
+        // Check for visited link CSS class indicators
+        const titleLink = this.findElement(card, 'title');
+        if (titleLink) {
+            if (titleLink.classList.contains('job-card-list__title--is-visited')) return true;
+            if (titleLink.closest('.job-card-list__entity-lockup--is-visited')) return true;
+        }
+
+        // Check for visited class on parent container
+        const cardParent = card.closest('li[data-occludable-job-id]') || card;
+        if (cardParent.classList.contains('jobs-search-results__list-item--visited')) return true;
+
+        return false;
     }
 
     isCompanyBlacklisted(card) {
@@ -291,9 +414,14 @@ class JobSieveFilter {
         if (!companyElement) return false;
 
         const companyText = companyElement.textContent.trim().toLowerCase();
-        return this.settings.companyBlacklist.some(company =>
-            companyText.includes(company.toLowerCase())
-        );
+        let matched = false;
+        for (const company of this.settings.companyBlacklist) {
+            if (companyText.includes(company.toLowerCase())) {
+                this.filterCounts.companyBlacklist[company] = (this.filterCounts.companyBlacklist[company] || 0) + 1;
+                matched = true;
+            }
+        }
+        return matched;
     }
 
     isLocationBlacklisted(card) {
@@ -305,9 +433,14 @@ class JobSieveFilter {
         if (!locationElement) return false;
 
         const locationText = locationElement.textContent.trim().toLowerCase();
-        return this.settings.locationBlacklist.some(location =>
-            locationText.includes(location.toLowerCase())
-        );
+        let matched = false;
+        for (const location of this.settings.locationBlacklist) {
+            if (locationText.includes(location.toLowerCase())) {
+                this.filterCounts.locationBlacklist[location] = (this.filterCounts.locationBlacklist[location] || 0) + 1;
+                matched = true;
+            }
+        }
+        return matched;
     }
 
     hasBlacklistedKeywords(card) {
@@ -316,9 +449,14 @@ class JobSieveFilter {
         }
 
         const cardText = this.getCardText(card).toLowerCase();
-        return this.settings.keywordBlacklist.some(keyword =>
-            cardText.includes(keyword.toLowerCase())
-        );
+        let matched = false;
+        for (const keyword of this.settings.keywordBlacklist) {
+            if (cardText.includes(keyword.toLowerCase())) {
+                this.filterCounts.keywordBlacklist[keyword] = (this.filterCounts.keywordBlacklist[keyword] || 0) + 1;
+                matched = true;
+            }
+        }
+        return matched;
     }
 
     hasWhitelistedKeywords(card) {
@@ -343,30 +481,26 @@ class JobSieveFilter {
     }
 
     hideCard(card) {
-        // Find the parent li element
+        // Find the parent li element and hide via CSS (not DOM removal, so toggles can restore)
         const listItem = card.closest('li[data-occludable-job-id]');
         if (listItem) {
-            // Completely remove the li element from DOM
-            listItem.remove();
+            listItem.classList.add('jobsieve-hidden');
         } else {
-            // Fallback: hide the card itself if no li parent found
-            card.style.display = 'none';
             card.classList.add('jobsieve-hidden');
         }
     }
 
     highlightCard(card) {
+        // Use CSS class only — no inline styles that would override the class
         card.classList.add('jobsieve-highlighted');
-        card.style.outline = '2px solid #21838f';
-        card.style.backgroundColor = 'rgba(76, 175, 80, 0.25)';
     }
 
     resetCardStyle(card) {
-        // Since we're removing elements, we don't need to reset styles
-        // for removed elements. Only reset for visible cards.
-        card.style.display = '';
-        card.style.outline = '';
-        card.style.backgroundColor = '';
+        // Remove hiding from both the card and its parent li
+        const listItem = card.closest('li[data-occludable-job-id]');
+        if (listItem) {
+            listItem.classList.remove('jobsieve-hidden');
+        }
         card.classList.remove('jobsieve-hidden', 'jobsieve-highlighted');
     }
 
@@ -443,48 +577,58 @@ class JobSieveFilter {
                 }
 
                 .jobsieve-highlighted {
-                    position: relative;
-                    outline: 2px solid #21838f !important;
-                    background-color: rgba(76, 175, 80, 0.25) !important;
-                    border-radius: 8px !important;
-                    animation: jobsieve-highlight 0.3s ease;
+                    position: relative !important;
+                    box-shadow: inset 0 0 0 2.5px #21838f,
+                                0 2px 12px rgba(33, 131, 143, 0.18) !important;
+                    background-color: rgba(33, 131, 143, 0.06) !important;
+                    border-radius: 10px !important;
+                    margin-top: 28px !important;
                     z-index: 1 !important;
+                    animation: jobsieve-highlight-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
                 }
 
                 .jobsieve-highlighted::before {
                     content: "✨ Highlighted by JobSieve";
                     position: absolute;
-                    top: -8px;
-                    left: 12px;
-                    background: #21838f;
+                    top: -22px;
+                    left: 10px;
+                    background: linear-gradient(135deg, #21838f 0%, #1a6b75 100%);
                     color: white;
-                    font-size: 11px;
-                    font-weight: 500;
-                    padding: 2px 8px;
-                    border-radius: 12px;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    font-size: 10.5px;
+                    font-weight: 600;
+                    letter-spacing: 0.2px;
+                    padding: 3px 10px;
+                    border-radius: 8px;
+                    line-height: 1.4;
                     z-index: 10;
                     pointer-events: none;
+                    box-shadow: 0 2px 6px rgba(33, 131, 143, 0.3);
+                    white-space: nowrap;
                 }
 
-                @keyframes jobsieve-highlight {
+                .jobsieve-highlighted:hover {
+                    box-shadow: inset 0 0 0 2.5px #1a6b75,
+                                0 4px 20px rgba(33, 131, 143, 0.22) !important;
+                }
+
+                @keyframes jobsieve-highlight-in {
                     0% {
-                        transform: scale(1);
-                        box-shadow: 0 0 0 0 rgba(33, 131, 143, 0.7);
-                    }
-                    50% {
-                        transform: scale(1.02);
-                        box-shadow: 0 0 0 10px rgba(33, 131, 143, 0);
+                        opacity: 0.6;
+                        box-shadow: inset 0 0 0 2.5px rgba(33, 131, 143, 0),
+                                    0 0 0 0 rgba(33, 131, 143, 0);
                     }
                     100% {
-                        transform: scale(1);
-                        box-shadow: 0 0 0 0 rgba(33, 131, 143, 0);
+                        opacity: 1;
+                        box-shadow: inset 0 0 0 2.5px #21838f,
+                                    0 2px 12px rgba(33, 131, 143, 0.18);
                     }
                 }
 
                 .jobsieve-fade-out {
                     opacity: 0 !important;
-                    transform: scale(0.95) !important;
-                    transition: opacity 0.3s ease, transform 0.3s ease !important;
+                    transform: scale(0.97) !important;
+                    transition: opacity 0.25s ease, transform 0.25s ease !important;
                 }
             `;
 
@@ -543,6 +687,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({
                 success: true,
                 healthStatus: jobSieveFilter.healthCheck
+            });
+            return true;
+        } else if (message.type === 'GET_FILTER_STATS' && jobSieveFilter) {
+            // Return full filter stats for popup display
+            sendResponse({
+                success: true,
+                sessionStats: jobSieveFilter.sessionStats,
+                filterCounts: jobSieveFilter.filterCounts
             });
             return true;
         }

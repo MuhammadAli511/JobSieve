@@ -2,21 +2,25 @@
   "manifest_version": 3,
   "name": "JobSieve - LinkedIn Job Filter",
 
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "Filter and customize your LinkedIn job search with powerful blacklists, whitelists, and smart filtering options.",
   "permissions": [
     "storage",
     "activeTab"
   ],
   "host_permissions": [
-    "*://*.linkedin.com/jobs/search*"
+    "*://*.linkedin.com/jobs/*"
   ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["*://*.linkedin.com/jobs/search*"],
+      "matches": [
+        "*://*.linkedin.com/jobs/search*",
+        "*://*.linkedin.com/jobs/collections/*",
+        "*://*.linkedin.com/jobs/view/*"
+      ],
       "js": ["content.js"],
       "run_at": "document_end"
     }
