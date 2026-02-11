@@ -210,10 +210,10 @@ class PopupManager {
 
     toggleSection(sectionName, enabled) {
         const sectionMap = {
-            companyBlacklist: this.elements.companyTags.closest('.filter-section'),
-            locationBlacklist: this.elements.locationTags.closest('.filter-section'),
-            keywordBlacklist: this.elements.keywordBlacklistTags.closest('.filter-section'),
-            keywordWhitelist: this.elements.keywordWhitelistTags.closest('.filter-section')
+            companyBlacklist: this.elements.companyTags.closest('.filter-card') || this.elements.companyTags.closest('.filter-section'),
+            locationBlacklist: this.elements.locationTags.closest('.filter-card') || this.elements.locationTags.closest('.filter-section'),
+            keywordBlacklist: this.elements.keywordBlacklistTags.closest('.filter-card') || this.elements.keywordBlacklistTags.closest('.filter-section'),
+            keywordWhitelist: this.elements.keywordWhitelistTags.closest('.filter-card') || this.elements.keywordWhitelistTags.closest('.filter-section')
         };
 
         const section = sectionMap[sectionName];
@@ -544,40 +544,46 @@ class PopupManager {
     }
 
     showNotification(message, type = 'info', duration = 3000) {
-        // Simple notification system
+        // Remove any existing notification
+        const existing = document.querySelector('.notification');
+        if (existing) existing.remove();
+
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
         notification.textContent = message;
-        notification.style.cssText = `
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      padding: 12px 16px;
-      border-radius: 6px;
-      color: white;
-      font-weight: 500;
-      z-index: 1000;
-      animation: slideIn 0.3s ease;
-    `;
 
-        switch (type) {
-            case 'success':
-                notification.style.background = '#22c55e';
-                break;
-            case 'error':
-                notification.style.background = '#ef4444';
-                break;
-            case 'warning':
-                notification.style.background = '#f59e0b';
-                break;
-            default:
-                notification.style.background = '#3b82f6';
-        }
+        const colors = {
+            success: 'linear-gradient(135deg, #22c55e, #16a34a)',
+            error: 'linear-gradient(135deg, #ef4444, #dc2626)',
+            warning: 'linear-gradient(135deg, #f59e0b, #d97706)',
+            info: 'linear-gradient(135deg, #21838f, #1a6b75)'
+        };
+
+        notification.style.cssText = `
+            position: fixed;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 18px;
+            border-radius: 100px;
+            color: white;
+            font-weight: 500;
+            font-size: 12px;
+            z-index: 1000;
+            animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            background: ${colors[type] || colors.info};
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            white-space: nowrap;
+            font-family: inherit;
+        `;
 
         document.body.appendChild(notification);
 
         setTimeout(() => {
-            notification.remove();
+            notification.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(-50%) translateY(-8px)';
+            setTimeout(() => notification.remove(), 200);
         }, duration);
     }
 
@@ -597,16 +603,16 @@ document.addEventListener('DOMContentLoaded', () => {
     new PopupManager();
 });
 
-// Add CSS for notifications
+// Add CSS for notification animations
 const style = document.createElement('style');
 style.textContent = `
   @keyframes slideIn {
     from {
-      transform: translateX(100%);
+      transform: translateX(-50%) translateY(-16px) scale(0.95);
       opacity: 0;
     }
     to {
-      transform: translateX(0);
+      transform: translateX(-50%) translateY(0) scale(1);
       opacity: 1;
     }
   }

@@ -99,6 +99,10 @@ class JobSieveFilter {
 
     async loadSettings() {
         try {
+            if (!isExtensionContextValid()) {
+                this.destroy();
+                return;
+            }
             const response = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
             if (response && response.success) {
                 this.settings = response.data;
@@ -146,13 +150,19 @@ class JobSieveFilter {
     // Health monitoring
     async reportHealth() {
         try {
+            if (!isExtensionContextValid()) {
+                this.destroy();
+                return;
+            }
             await chrome.runtime.sendMessage({
                 type: 'HEALTH_CHECK',
                 data: this.healthCheck
             });
         } catch (error) {
-            // Silently handle health reporting errors to avoid console spam
-            // Health reporting is not critical for functionality
+            // Extension context likely invalidated (e.g., extension reloaded)
+            if (error.message?.includes('Extension context invalidated')) {
+                this.destroy();
+            }
         }
     }
 
@@ -386,6 +396,10 @@ class JobSieveFilter {
             }
 
             if (shouldRefilter) {
+                if (!isExtensionContextValid()) {
+                    this.destroy();
+                    return;
+                }
                 // Debounce filtering
                 clearTimeout(this.filterTimeout);
                 this.filterTimeout = setTimeout(() => this.filterJobs(), 500);
@@ -514,6 +528,7 @@ if (document.readyState === 'loading') {
 
 // Listen for settings updates from popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (!isExtensionContextValid()) return false;
     try {
         if (message.type === 'PING') {
             // Respond to ping to confirm content script is loaded

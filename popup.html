@@ -9,89 +9,206 @@
 <body>
   <div class="container">
     <header class="header">
-      <div class="logo">
-        <h1>🔍 JobSieve</h1>
-        <p>LinkedIn Job Filter</p>
-      </div>
-      <div class="header-actions">
-        <div class="health-status" id="healthStatus">
-          <span class="status-indicator" id="statusIndicator"></span>
-          <span id="statusText">Loading...</span>
+      <div class="header-top">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <rect width="28" height="28" rx="8" fill="rgba(255,255,255,0.15)"/>
+              <path d="M9 8L14 6L19 8V15L14 20L9 15V8Z" stroke="white" stroke-width="1.5" stroke-linejoin="round" fill="rgba(255,255,255,0.1)"/>
+              <circle cx="14" cy="12" r="2.5" stroke="white" stroke-width="1.5"/>
+              <path d="M14 14.5V17" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="logo-text">
+            <h1>JobSieve</h1>
+            <p>LinkedIn Job Filter</p>
+          </div>
         </div>
-        <button type="button" id="resetSettings" class="btn-reset-header">Reset All</button>
+        <div class="header-actions">
+          <div class="health-status" id="healthStatus">
+            <span class="status-dot" id="statusIndicator"></span>
+            <span class="status-label" id="statusText">Loading...</span>
+          </div>
+          <button type="button" id="resetSettings" class="btn-reset-header" title="Reset all filters">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
+            Reset
+          </button>
+        </div>
       </div>
     </header>
 
     <main class="content">
       <!-- Company Blacklist -->
-      <section class="filter-section">
-        <div class="filter-header">
-          <label class="switch">
+      <section class="filter-card">
+        <div class="filter-card-header">
+          <div class="filter-title-row">
+            <div class="filter-icon filter-icon--ban">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+            </div>
+            <div class="filter-title-text">
+              <h3>Company Blacklist</h3>
+              <p class="filter-desc">Hide jobs from specific companies</p>
+            </div>
+          </div>
+          <label class="toggle">
             <input type="checkbox" id="companyBlacklistEnabled">
-            <span class="slider"></span>
+            <span class="toggle-track">
+              <span class="toggle-thumb"></span>
+            </span>
           </label>
-          <h3>Company Blacklist</h3>
         </div>
-        <p class="description">Hide jobs from specific companies</p>
-        <div class="input-group">
-          <input type="text" id="companyInput" placeholder="Enter company name">
-          <button type="button" id="addCompany" class="btn-add">Add</button>
+        <div class="filter-card-body">
+          <div class="input-row">
+            <div class="input-wrapper">
+              <svg class="input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="text" id="companyInput" placeholder="Enter company name">
+            </div>
+            <button type="button" id="addCompany" class="btn-add">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Add
+            </button>
+          </div>
+          <div class="tags" id="companyTags"></div>
         </div>
-        <div class="tags" id="companyTags"></div>
       </section>
 
       <!-- Location Exclusion -->
-      <section class="filter-section">
-        <div class="filter-header">
-          <label class="switch">
+      <section class="filter-card">
+        <div class="filter-card-header">
+          <div class="filter-title-row">
+            <div class="filter-icon filter-icon--location">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+            <div class="filter-title-text">
+              <h3>Location Exclusion</h3>
+              <p class="filter-desc">Hide jobs from specific locations</p>
+            </div>
+          </div>
+          <label class="toggle">
             <input type="checkbox" id="locationBlacklistEnabled">
-            <span class="slider"></span>
+            <span class="toggle-track">
+              <span class="toggle-thumb"></span>
+            </span>
           </label>
-          <h3>Location Exclusion</h3>
         </div>
-        <p class="description">Hide jobs from specific locations</p>
-        <div class="input-group">
-          <input type="text" id="locationInput" placeholder="Enter city, region, or country">
-          <button type="button" id="addLocation" class="btn-add">Add</button>
+        <div class="filter-card-body">
+          <div class="input-row">
+            <div class="input-wrapper">
+              <svg class="input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="text" id="locationInput" placeholder="Enter city, region, or country">
+            </div>
+            <button type="button" id="addLocation" class="btn-add">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Add
+            </button>
+          </div>
+          <div class="tags" id="locationTags"></div>
         </div>
-        <div class="tags" id="locationTags"></div>
       </section>
 
       <!-- Keyword Blacklist -->
-      <section class="filter-section">
-        <div class="filter-header">
-          <label class="switch">
+      <section class="filter-card">
+        <div class="filter-card-header">
+          <div class="filter-title-row">
+            <div class="filter-icon filter-icon--block">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+              </svg>
+            </div>
+            <div class="filter-title-text">
+              <h3>Keyword Blacklist</h3>
+              <p class="filter-desc">Hide jobs containing unwanted terms</p>
+            </div>
+          </div>
+          <label class="toggle">
             <input type="checkbox" id="keywordBlacklistEnabled">
-            <span class="slider"></span>
+            <span class="toggle-track">
+              <span class="toggle-thumb"></span>
+            </span>
           </label>
-          <h3>Keyword Blacklist</h3>
         </div>
-        <p class="description">Hide jobs containing unwanted terms</p>
-        <div class="input-group">
-          <input type="text" id="keywordBlacklistInput" placeholder="e.g. Senior, Contract, Remote">
-          <button type="button" id="addKeywordBlacklist" class="btn-add">Add</button>
+        <div class="filter-card-body">
+          <div class="input-row">
+            <div class="input-wrapper">
+              <svg class="input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="text" id="keywordBlacklistInput" placeholder="e.g. Senior, Contract, Remote">
+            </div>
+            <button type="button" id="addKeywordBlacklist" class="btn-add">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Add
+            </button>
+          </div>
+          <div class="tags" id="keywordBlacklistTags"></div>
         </div>
-        <div class="tags" id="keywordBlacklistTags"></div>
       </section>
 
       <!-- Keyword Whitelist -->
-      <section class="filter-section">
-        <div class="filter-header">
-          <label class="switch">
+      <section class="filter-card">
+        <div class="filter-card-header">
+          <div class="filter-title-row">
+            <div class="filter-icon filter-icon--star">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </div>
+            <div class="filter-title-text">
+              <h3>Keyword Whitelist</h3>
+              <p class="filter-desc">Highlight jobs with desired skills or perks</p>
+            </div>
+          </div>
+          <label class="toggle">
             <input type="checkbox" id="keywordWhitelistEnabled">
-            <span class="slider"></span>
+            <span class="toggle-track">
+              <span class="toggle-thumb"></span>
+            </span>
           </label>
-          <h3>Keyword Whitelist</h3>
         </div>
-        <p class="description">Highlight jobs with required skills or perks</p>
-        <div class="input-group">
-          <input type="text" id="keywordWhitelistInput" placeholder="e.g. React, Python, Remote">
-          <button type="button" id="addKeywordWhitelist" class="btn-add">Add</button>
+        <div class="filter-card-body">
+          <div class="input-row">
+            <div class="input-wrapper">
+              <svg class="input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="text" id="keywordWhitelistInput" placeholder="e.g. React, Python, Remote">
+            </div>
+            <button type="button" id="addKeywordWhitelist" class="btn-add">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Add
+            </button>
+          </div>
+          <div class="tags" id="keywordWhitelistTags"></div>
         </div>
-        <div class="tags" id="keywordWhitelistTags"></div>
       </section>
 
     </main>
+
+    <footer class="footer">
+      <span class="footer-text">JobSieve v1.0.2</span>
+    </footer>
 
     <script src="popup.js"></script>
   </div>
