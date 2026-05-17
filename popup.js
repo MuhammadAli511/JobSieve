@@ -15,7 +15,36 @@ class PopupManager {
         this.loadTheme();
         this.initializeElements();
         this.setupEventListeners();
+        this.setupTabs();
         this.loadSettings();
+    }
+
+    setupTabs() {
+        const tabs = document.querySelectorAll('.tab[data-tab]');
+        const panels = document.querySelectorAll('.tab-panel[data-panel]');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const target = tab.dataset.tab;
+
+                tabs.forEach(t => {
+                    const active = t === tab;
+                    t.classList.toggle('is-active', active);
+                    t.setAttribute('aria-selected', active ? 'true' : 'false');
+                });
+
+                panels.forEach(p => {
+                    const active = p.dataset.panel === target;
+                    p.classList.toggle('is-active', active);
+                    if (active) p.removeAttribute('hidden');
+                    else p.setAttribute('hidden', '');
+                });
+
+                // Reset scroll position when switching tabs for cleaner UX
+                const content = document.querySelector('.content');
+                if (content) content.scrollTop = 0;
+            });
+        });
     }
 
     loadTheme() {
@@ -41,6 +70,9 @@ class PopupManager {
         this.elements.keywordWhitelistEnabled = document.getElementById('keywordWhitelistEnabled');
         this.elements.hidePromotedEnabled = document.getElementById('hidePromotedEnabled');
         this.elements.hideViewedEnabled = document.getElementById('hideViewedEnabled');
+        this.elements.hideEasyApplyEnabled = document.getElementById('hideEasyApplyEnabled');
+        this.elements.hideAppliedEnabled = document.getElementById('hideAppliedEnabled');
+        this.elements.hideNoSalaryEnabled = document.getElementById('hideNoSalaryEnabled');
 
         // Input fields
         this.elements.companyInput = document.getElementById('companyInput');
@@ -79,6 +111,9 @@ class PopupManager {
         this.elements.statsByKeyword = document.getElementById('statsByKeyword');
         this.elements.statsByPromoted = document.getElementById('statsByPromoted');
         this.elements.statsByViewed = document.getElementById('statsByViewed');
+        this.elements.statsByApplied = document.getElementById('statsByApplied');
+        this.elements.statsByEasyApply = document.getElementById('statsByEasyApply');
+        this.elements.statsByNoSalary = document.getElementById('statsByNoSalary');
     }
 
     setupEventListeners() {
@@ -112,12 +147,30 @@ class PopupManager {
             this.saveSettings(false);
         });
 
+        this.elements.hideEasyApplyEnabled.addEventListener('change', () => {
+            this.saveSettings(false);
+        });
+
+        this.elements.hideAppliedEnabled.addEventListener('change', () => {
+            this.saveSettings(false);
+        });
+
+        this.elements.hideNoSalaryEnabled.addEventListener('change', () => {
+            this.saveSettings(false);
+        });
+
         // Stats details toggle
         this.elements.statsToggleDetails.addEventListener('click', () => {
             const details = this.elements.statsDetails;
-            const isHidden = details.style.display === 'none';
-            details.style.display = isHidden ? 'block' : 'none';
-            this.elements.statsToggleDetails.classList.toggle('expanded', isHidden);
+            const wasHidden = details.hasAttribute('hidden');
+            if (wasHidden) {
+                details.removeAttribute('hidden');
+                details.style.display = '';
+            } else {
+                details.setAttribute('hidden', '');
+            }
+            this.elements.statsToggleDetails.classList.toggle('expanded', wasHidden);
+            this.elements.statsToggleDetails.setAttribute('aria-expanded', wasHidden ? 'true' : 'false');
         });
 
         // Add buttons
@@ -263,6 +316,9 @@ class PopupManager {
         this.elements.keywordWhitelistEnabled.checked = this.settings.filtersEnabled?.keywordWhitelist || false;
         this.elements.hidePromotedEnabled.checked = this.settings.filtersEnabled?.hidePromoted || false;
         this.elements.hideViewedEnabled.checked = this.settings.filtersEnabled?.hideViewed || false;
+        this.elements.hideEasyApplyEnabled.checked = this.settings.filtersEnabled?.hideEasyApply || false;
+        this.elements.hideAppliedEnabled.checked = this.settings.filtersEnabled?.hideApplied || false;
+        this.elements.hideNoSalaryEnabled.checked = this.settings.filtersEnabled?.hideNoSalary || false;
 
         // Populate tags
         this.renderTags('companyBlacklist', this.settings.companyBlacklist || []);
@@ -388,7 +444,10 @@ class PopupManager {
                     keywordBlacklist: this.elements.keywordBlacklistEnabled.checked,
                     keywordWhitelist: this.elements.keywordWhitelistEnabled.checked,
                     hidePromoted: this.elements.hidePromotedEnabled.checked,
-                    hideViewed: this.elements.hideViewedEnabled.checked
+                    hideViewed: this.elements.hideViewedEnabled.checked,
+                    hideEasyApply: this.elements.hideEasyApplyEnabled.checked,
+                    hideApplied: this.elements.hideAppliedEnabled.checked,
+                    hideNoSalary: this.elements.hideNoSalaryEnabled.checked
                 }
             };
 
@@ -528,11 +587,12 @@ class PopupManager {
             warningBanner.style.cssText = `
                 background: linear-gradient(135deg, #ef4444, #dc2626);
                 color: white;
-                padding: 16px 20px;
-                margin: -24px -20px 20px -20px;
-                font-size: 13px;
-                line-height: 1.4;
-                border-bottom: 1px solid rgba(255,255,255,0.2);
+                padding: 14px 16px;
+                margin: -14px -14px 14px -14px;
+                font-size: 12.5px;
+                line-height: 1.45;
+                border-radius: 0 0 12px 12px;
+                box-shadow: 0 4px 14px rgba(239, 68, 68, 0.22);
             `;
             document.querySelector('.content').prepend(warningBanner);
         }
@@ -614,12 +674,15 @@ class PopupManager {
             warningBanner = document.createElement('div');
             warningBanner.id = 'pageWarning';
             warningBanner.style.cssText = `
-                background: #f59e0b;
+                background: linear-gradient(135deg, #f59e0b, #d97706);
                 color: white;
-                padding: 12px;
-                margin: -24px -20px 20px -20px;
-                font-size: 13px;
+                padding: 12px 14px;
+                margin: -14px -14px 14px -14px;
+                font-size: 12.5px;
                 text-align: center;
+                font-weight: 500;
+                border-radius: 0 0 12px 12px;
+                box-shadow: 0 4px 14px rgba(245, 158, 11, 0.22);
             `;
             document.querySelector('.content').prepend(warningBanner);
         }
@@ -728,6 +791,9 @@ class PopupManager {
         if (this.elements.statsByKeyword) this.elements.statsByKeyword.textContent = byFilter.keywordBlacklist || 0;
         if (this.elements.statsByPromoted) this.elements.statsByPromoted.textContent = byFilter.promoted || 0;
         if (this.elements.statsByViewed) this.elements.statsByViewed.textContent = byFilter.viewed || 0;
+        if (this.elements.statsByApplied) this.elements.statsByApplied.textContent = byFilter.applied || 0;
+        if (this.elements.statsByEasyApply) this.elements.statsByEasyApply.textContent = byFilter.easyApply || 0;
+        if (this.elements.statsByNoSalary) this.elements.statsByNoSalary.textContent = byFilter.noSalary || 0;
 
         // Update tag badges with per-tag counts
         if (filterCounts) {

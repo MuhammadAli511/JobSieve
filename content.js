@@ -20,7 +20,10 @@ class JobSieveFilter {
                 locationBlacklist: 0,
                 keywordBlacklist: 0,
                 promoted: 0,
-                viewed: 0
+                viewed: 0,
+                easyApply: 0,
+                applied: 0,
+                noSalary: 0
             }
         };
         this.filterCounts = {
@@ -158,7 +161,10 @@ class JobSieveFilter {
                     keywordBlacklist: false,
                     keywordWhitelist: false,
                     hidePromoted: false,
-                    hideViewed: false
+                    hideViewed: false,
+                    hideEasyApply: false,
+                    hideApplied: false,
+                    hideNoSalary: false
                 },
                 companyBlacklist: [],
                 locationBlacklist: [],
@@ -288,7 +294,10 @@ class JobSieveFilter {
             locationBlacklist: 0,
             keywordBlacklist: 0,
             promoted: 0,
-            viewed: 0
+            viewed: 0,
+            easyApply: 0,
+            applied: 0,
+            noSalary: 0
         };
 
         // Process each job card
@@ -347,8 +356,11 @@ class JobSieveFilter {
 
     // Returns the reason string for hiding, or null if card should not be hidden
     getHideReason(card) {
+        if (this.isApplied(card)) return 'applied';
         if (this.isPromoted(card)) return 'promoted';
+        if (this.isEasyApply(card)) return 'easyApply';
         if (this.isViewed(card)) return 'viewed';
+        if (this.isMissingSalary(card)) return 'noSalary';
         if (this.isCompanyBlacklisted(card)) return 'companyBlacklist';
         if (this.isLocationBlacklisted(card)) return 'locationBlacklist';
         if (this.hasBlacklistedKeywords(card)) return 'keywordBlacklist';
@@ -403,6 +415,64 @@ class JobSieveFilter {
         if (cardParent.classList.contains('jobs-search-results__list-item--visited')) return true;
 
         return false;
+    }
+
+    isEasyApply(card) {
+        if (!this.settings.filtersEnabled?.hideEasyApply) return false;
+
+        // LinkedIn renders an "Easy Apply" pill inside the card footer next to a small LI bug icon.
+        const footerItems = card.querySelectorAll(
+            '.job-card-list__footer-wrapper .job-card-container__footer-item, .job-card-container__footer-wrapper .job-card-container__footer-item'
+        );
+        for (const el of footerItems) {
+            if (/\beasy\s+apply\b/i.test(el.textContent)) return true;
+        }
+        return false;
+    }
+
+    isApplied(card) {
+        if (!this.settings.filtersEnabled?.hideApplied) return false;
+
+        // LinkedIn marks applied jobs via .job-card-container__footer-job-state with "Applied" text.
+        // "Viewed" uses the same class; match on the word to avoid false positives.
+        const stateEls = card.querySelectorAll('.job-card-container__footer-job-state');
+        for (const el of stateEls) {
+            const text = el.textContent.trim();
+            if (/^applied$/i.test(text) || /\bapplied\b/i.test(text)) return true;
+        }
+
+        // Fallback: scan footer items for a bold "Applied" state badge (avoid matching "Easy Apply")
+        const footerItems = card.querySelectorAll(
+            '.job-card-list__footer-wrapper .job-card-container__footer-item, .job-card-container__footer-wrapper .job-card-container__footer-item'
+        );
+        for (const el of footerItems) {
+            const text = el.textContent.trim();
+            if (/easy\s+apply/i.test(text)) continue;
+            if (/\bapplied\b/i.test(text)) return true;
+        }
+        return false;
+    }
+
+    isMissingSalary(card) {
+        if (!this.settings.filtersEnabled?.hideNoSalary) return false;
+        return !this.hasSalaryInfo(card);
+    }
+
+    hasSalaryInfo(card) {
+        // Primary: LinkedIn places salary in an extra metadata slot below the caption.
+        const metadataEl = card.querySelector('.artdeco-entity-lockup__metadata');
+        if (metadataEl && this.looksLikeSalary(metadataEl.textContent)) {
+            return true;
+        }
+        // Fallback: scan the rest of the card text in case the slot moves.
+        return this.looksLikeSalary(card.textContent);
+    }
+
+    looksLikeSalary(text) {
+        if (!text) return false;
+        // Currency symbol followed by a number, OR currency code (USD/PKR/etc) + number,
+        // OR a number with a per-period suffix (e.g. 60K/yr, 25/hour).
+        return /[$€£¥₹]\s*[\d,.]+|\b(?:USD|EUR|GBP|JPY|INR|PKR|CAD|AUD|CHF|SGD|AED|SAR|NZD|HKD|MXN|BRL|ZAR|Rs)\s*[\d,.]+\s*[KkMm]?|\b[\d,.]+\s*[KkMm]?\s*\/\s*(?:yr|year|hr|hour|mo|month|wk|week)\b/i.test(text);
     }
 
     isCompanyBlacklisted(card) {

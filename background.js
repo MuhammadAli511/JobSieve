@@ -36,7 +36,10 @@ class JobSieveBackground {
                 keywordBlacklist: true,
                 keywordWhitelist: true,
                 hidePromoted: false,
-                hideViewed: false
+                hideViewed: false,
+                hideEasyApply: false,
+                hideApplied: false,
+                hideNoSalary: false
             },
             healthStatus: {
                 selectorsWorking: true
